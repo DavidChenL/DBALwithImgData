@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 import argparse
 import numpy as np
 import seaborn as sns
@@ -20,7 +21,10 @@ def load_CNN_model(args, device):
     """Load new model each time for different acqusition function
     each experiments"""
     # model = ConvNN().to(device)
-    model = models.resnet18().to(device)
+    model = models.resnet50().to(device)
+    if 'MNIST' in args.dataset.upper():
+        model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+    # print(model)
     cnn_classifier = NeuralNetClassifier(
         module=model,
         lr=args.lr,
@@ -210,6 +214,7 @@ def main():
     )
 
     args = parser.parse_args()
+    print(' '.join(f'{k}={v}' for k, v in vars(args).items()))
     torch.manual_seed(args.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -234,5 +239,11 @@ def main():
     plot_results(data=results, save_path=args.result_dir)
 
 
+
 if __name__ == "__main__":
+    print('The experiments started at ', datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+    start_time = time.time()
     main()
+    end_time = time.time()
+    print('The experiments ended at ', datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+    print('Total time of experiments in seconds:', end_time - start_time)

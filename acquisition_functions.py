@@ -90,6 +90,27 @@ def max_entropy(
     return query_idx, X_pool[query_idx]
 
 
+def min_entropy(
+    model, X_pool: np.ndarray, n_query: int = 10, T: int = 100, training: bool = True
+):
+    """Choose pool points that maximise the predictive entropy.
+    Using Shannon entropy function.
+
+    Attributes:
+        model: Model that is ready to measure uncertainty after training,
+        X_pool: Pool set to select uncertainty,
+        n_query: Number of points that maximise max_entropy a(x) from pool set,
+        T: Number of MC dropout iterations aka training iterations,
+        training: If False, run test without MC dropout. (default=True)
+    """
+    acquisition, random_subset = shannon_entropy_function(
+        model, X_pool, T, training=training
+    )
+    idx = acquisition.argsort()[:n_query]
+    query_idx = random_subset[idx]
+    return query_idx, X_pool[query_idx]
+
+
 def bald(
     model, X_pool: np.ndarray, n_query: int = 10, T: int = 100, training: bool = True
 ):

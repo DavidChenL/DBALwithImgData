@@ -18,13 +18,13 @@ class LoadData:
         self.pool_size = self.dataset_train.data.shape[0] - self.train_size - self.val_size
 
         (
-            self.X_train_All,
+            self.dataset_train_All,
             self.y_train_All,
             self.X_val,
             self.y_val,
             self.X_pool,
             self.y_pool,
-            self.X_test,
+            self.dataset_test,
             self.y_test,
         ) = self.split_and_load_dataset()
         self.X_init, self.y_init = self.preprocess_training_data()
@@ -47,19 +47,22 @@ class LoadData:
 
     def download_dataset(self):
         """Load MNIST dataset for training and test set."""
-        # transform = transforms.Compose(
-        #     [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        # )
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-        transform_test = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
+        if 'MNIST' in self.dataset.upper():
+            transform_train = transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            )
+            transform_test = transform_train
+        if 'CIFAR' in self.dataset.upper():
+            transform_train = transforms.Compose([
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            ])
+            transform_test = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            ])
         download = self.check_dataset_folder()
         dataset_list = ['LSUN', 'LSUNClass',
         'ImageFolder', 'DatasetFolder', 'FakeData',
@@ -91,17 +94,17 @@ class LoadData:
         test_loader = DataLoader(
             dataset=self.dataset_test, batch_size=10000, shuffle=True
         )
-        X_train_All, y_train_All = next(iter(train_loader))
+        dataset_train_All, y_train_All = next(iter(train_loader))
         X_val, y_val = next(iter(val_loader))
         X_pool, y_pool = next(iter(pool_loader))
-        X_test, y_test = next(iter(test_loader))
-        return X_train_All, y_train_All, X_val, y_val, X_pool, y_pool, X_test, y_test
+        dataset_test, y_test = next(iter(test_loader))
+        return dataset_train_All, y_train_All, X_val, y_val, X_pool, y_pool, dataset_test, y_test
 
     def preprocess_training_data(self):
         """Setup a random but balanced initial training set of 20 data points
 
         Attributes:
-            X_train_All: X input of training set,
+            dataset_train_All: X input of training set,
             y_train_All: y input of training set
         """
         initial_idx = np.array([], dtype=np.int)
@@ -110,7 +113,7 @@ class LoadData:
                 np.where(self.y_train_All == i)[0], size=2, replace=False
             )
             initial_idx = np.concatenate((initial_idx, idx))
-        X_init = self.X_train_All[initial_idx]
+        X_init = self.dataset_train_All[initial_idx]
         y_init = self.y_train_All[initial_idx]
         print(f"Initial training data points: {X_init.shape[0]}")
         print(f"Data distribution for each class: {np.bincount(y_init)}")
@@ -125,6 +128,6 @@ class LoadData:
             self.tensor_to_np(self.y_val),
             self.tensor_to_np(self.X_pool),
             self.tensor_to_np(self.y_pool),
-            self.tensor_to_np(self.X_test),
+            self.tensor_to_np(self.dataset_test),
             self.tensor_to_np(self.y_test),
         )
