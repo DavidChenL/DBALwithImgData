@@ -25,7 +25,7 @@ class ConvNN(nn.Module):
             maxpool: Max pooling size
         """
         super(ConvNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, num_filters, kernel_size, 1)
+        self.conv1 = nn.Conv2d(3, num_filters, kernel_size, 1)
         self.conv2 = nn.Conv2d(num_filters, num_filters, kernel_size, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.5)

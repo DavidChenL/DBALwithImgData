@@ -11,13 +11,16 @@ from scipy.ndimage.filters import gaussian_filter1d
 
 from load_data import LoadData
 from cnn_model import ConvNN
+import torchvision.models as models
+
 from active_learning import select_acq_function, active_learning_procedure
 
 
 def load_CNN_model(args, device):
     """Load new model each time for different acqusition function
     each experiments"""
-    model = ConvNN().to(device)
+    # model = ConvNN().to(device)
+    model = models.resnet18().to(device)
     cnn_classifier = NeuralNetClassifier(
         module=model,
         lr=args.lr,
@@ -31,6 +34,7 @@ def load_CNN_model(args, device):
     )
     return cnn_classifier
 
+
 def save_as_npy(data: np.ndarray, folder: str, name: str):
     """Save result as npy file
     
@@ -39,16 +43,18 @@ def save_as_npy(data: np.ndarray, folder: str, name: str):
         folder: result folder name,
         name: npy filename
     """
-    file_name = os.path.join(folder, name+".npy")
+    file_name = os.path.join(folder, name + ".npy")
     np.save(file_name, data)
     print(f"Saved: {file_name}")
 
-def plot_results(data: dict):
+
+def plot_results(data: dict, save_path: str):
     """Plot results histogram using matplotlib"""
     sns.set()
     for key in data.keys():
         # data[key] = gaussian_filter1d(data[key], sigma=0.9) # for smoother graph
         plt.plot(data[key], label=key)
+    plt.savefig(os.path.join(save_path, 'output.jpg'))
     plt.show()
 
 
@@ -62,7 +68,7 @@ def print_elapsed_time(start_time: float, exp: int, acq_func: str):
     """
     elp = time.time() - start_time
     print(
-        f"********** Experiment {exp} ({acq_func}): {int(elp//3600)}:{int(elp%3600//60)}:{int(elp%60)} **********"
+        f"********** Experiment {exp} ({acq_func}): {int(elp // 3600)}:{int(elp % 3600 // 60)}:{int(elp % 60)} **********"
     )
 
 
@@ -78,10 +84,10 @@ def train_active_learning(args, device, datasets: dict) -> dict:
     acq_functions = select_acq_function(args.acq_func)
     results = dict()
     if args.determ:
-        state_loop = [True, False] # dropout VS non-dropout
+        state_loop = [True, False]  # dropout VS non-dropout
     else:
-        state_loop = [True] # run dropout only
-    
+        state_loop = [True]  # run dropout only
+
     for state in state_loop:
         for i, acq_func in enumerate(acq_functions):
             avg_hist = []
@@ -92,7 +98,7 @@ def train_active_learning(args, device, datasets: dict) -> dict:
                 start_time = time.time()
                 estimator = load_CNN_model(args, device)
                 print(
-                    f"********** Experiment Iterations: {e+1}/{args.experiments} **********"
+                    f"********** Experiment Iterations: {e + 1}/{args.experiments} **********"
                 )
                 training_hist, test_score = active_learning_procedure(
                     query_strategy=acq_func,
@@ -116,7 +122,7 @@ def train_active_learning(args, device, datasets: dict) -> dict:
             avg_test = sum(test_scores) / len(test_scores)
             print(f"Average Test score for {acq_func_name}: {avg_test}")
             results[acq_func_name] = avg_hist
-            save_as_npy(data=avg_hist, folder=args.result_dir ,name=acq_func_name)
+            save_as_npy(data=avg_hist, folder=args.result_dir, name=acq_func_name)
     print("--------------- Done Training! ---------------")
     return results
 
@@ -184,6 +190,13 @@ def main():
         help="validation set size (default: 100)",
     )
     parser.add_argument(
+        "--dataset",
+        type=str,
+        default='CIFAR10',
+        metavar="D",
+        help="dataset",
+    )
+    parser.add_argument(
         "--determ",
         action="store_true",
         help="Compare with deterministic models (default: False)",
@@ -202,7 +215,7 @@ def main():
     print(f"Using device: {device}")
 
     datasets = dict()
-    DataLoader = LoadData(args.val_size)
+    DataLoader = LoadData(args.dataset, args.val_size)
     (
         datasets["X_init"],
         datasets["y_init"],
@@ -218,7 +231,7 @@ def main():
         os.mkdir(args.result_dir)
 
     results = train_active_learning(args, device, datasets)
-    plot_results(data=results)
+    plot_results(data=results, save_path=args.result_dir)
 
 
 if __name__ == "__main__":
