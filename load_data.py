@@ -9,14 +9,14 @@ from torch.utils.data import DataLoader, random_split
 class LoadData:
     """Download, split and shuffle dataset into train, validate, test and pool"""
 
-    def __init__(self, dataset, val_size: int = 100):
+    def __init__(self, dataset, val_size: int = 100, init_size: int = 20):
         self.train_size = 10000
         self.val_size = val_size
         self.dataset = dataset
 
         self.dataset_train, self.dataset_test = self.download_dataset()
         self.pool_size = self.dataset_train.data.shape[0] - self.train_size - self.val_size
-
+        self.init_size = init_size
         (
             self.dataset_train_All,
             self.y_train_All,
@@ -110,7 +110,7 @@ class LoadData:
         initial_idx = np.array([], dtype=np.int)
         for i in range(10):
             idx = np.random.choice(
-                np.where(self.y_train_All == i)[0], size=2, replace=False
+                np.where(self.y_train_All == i)[0], size=self.init_size//10, replace=False
             )
             initial_idx = np.concatenate((initial_idx, idx))
         X_init = self.dataset_train_All[initial_idx]

@@ -21,7 +21,13 @@ def load_CNN_model(args, device):
     """Load new model each time for different acqusition function
     each experiments"""
     # model = ConvNN().to(device)
-    model = models.resnet50().to(device)
+    if args.pretrained:
+        print("=> using pre-trained model '{}'".format(args.model))
+        model = models.__dict__[args.model](pretrained=True)
+    else:
+        print("=> creating model '{}'".format(args.model))
+        model = models.__dict__[args.model]()
+    model = nn.DataParallel(model).to(device)
     if 'MNIST' in args.dataset.upper():
         model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
     # print(model)
@@ -172,6 +178,13 @@ def main():
         help="dropout iterations,T (default: 100)",
     )
     parser.add_argument(
+        "--init_size",
+        type=int,
+        default=20,
+        metavar="I",
+        help="number of initial training data points (default: 20)",
+    )
+    parser.add_argument(
         "--query",
         type=int,
         default=10,
@@ -201,6 +214,18 @@ def main():
         help="dataset",
     )
     parser.add_argument(
+        "--model",
+        type=str,
+        default='resnet50',
+        metavar="D",
+        help="model from torchvision",
+    )
+    parser.add_argument(
+        "--pretrained",
+        action="store_true",
+        help="use pretrained model",
+    )
+    parser.add_argument(
         "--determ",
         action="store_true",
         help="Compare with deterministic models (default: False)",
@@ -216,11 +241,11 @@ def main():
     args = parser.parse_args()
     print(' '.join(f'{k}={v}' for k, v in vars(args).items()))
     torch.manual_seed(args.seed)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     datasets = dict()
-    DataLoader = LoadData(args.dataset, args.val_size)
+    DataLoader = LoadData(args.dataset, args.val_size, args.init_size)
     (
         datasets["X_init"],
         datasets["y_init"],
