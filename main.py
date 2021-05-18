@@ -11,6 +11,7 @@ from skorch import NeuralNetClassifier
 from scipy.ndimage.filters import gaussian_filter1d
 
 from load_data import LoadData
+from plot import plot_results
 from cnn_model import ConvNN
 import torchvision.models as models
 
@@ -56,16 +57,6 @@ def save_as_npy(data: np.ndarray, folder: str, name: str):
     file_name = os.path.join(folder, name + ".npy")
     np.save(file_name, data)
     print(f"Saved: {file_name}")
-
-
-def plot_results(data: dict, save_path: str):
-    """Plot results histogram using matplotlib"""
-    sns.set()
-    for key in data.keys():
-        # data[key] = gaussian_filter1d(data[key], sigma=0.9) # for smoother graph
-        plt.plot(data[key], label=key)
-    plt.savefig(os.path.join(save_path, 'output.jpg'))
-    plt.show()
 
 
 def print_elapsed_time(start_time: float, exp: int, acq_func: str):
@@ -261,7 +252,7 @@ def main():
         os.mkdir(args.result_dir)
 
     results = train_active_learning(args, device, datasets)
-    plot_results(data=results, save_path=args.result_dir)
+    plot_results(data=results, save_path=args.result_dir, title=args.dataset)
 
 
 
