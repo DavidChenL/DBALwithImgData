@@ -1,6 +1,10 @@
+import os
 import torch
 import numpy as np
 from modAL.models import ActiveLearner
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+from matplotlib import pyplot as plt
 
 from acquisition_functions import uniform, max_entropy, min_entropy, bald, var_ratios, mean_std
 
@@ -45,7 +49,21 @@ def active_learning_procedure(
             X_pool, n_query=n_query, T=T, training=training
         )
         learner.teach(X_pool[query_idx], y_pool[query_idx])
+        feature = learner.extract_feature().cpu().detach().numpy()
+        pca = PCA(n_components=10)
+        feature_reduced = pca.fit_transform(feature)
+        tsne = TSNE(n_components=2)
+        feature_reduced_tsne = tsne.fit_transform(feature_reduced)
+
+        training_pool_size = learner.y_training.shape[0]
+        plt.figure(figsize=(15, 15))
+        plt.scatter(feature_reduced_tsne[:, 0], feature_reduced_tsne[:, 1], c=learner.y_training, cmap='tab10')
+        plt.title(training_pool_size)
+        plt.savefig(os.path.join('tsne_images', str(training_pool_size)+'.jpg'))
+        plt.show()
+
         X_pool = np.delete(X_pool, query_idx, axis=0)
+        print(X_pool.shape)
         y_pool = np.delete(y_pool, query_idx, axis=0)
         model_accuracy_val = learner.score(X_val, y_val)
         if (index + 1) % 5 == 0:
