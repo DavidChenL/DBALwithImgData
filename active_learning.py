@@ -49,15 +49,18 @@ def active_learning_procedure(
             X_pool, n_query=n_query, T=T, training=training
         )
         learner.teach(X_pool[query_idx], y_pool[query_idx])
-        feature = learner.extract_feature().cpu().detach().numpy()
-        pca = PCA(n_components=10)
-        feature_reduced = pca.fit_transform(feature)
-        tsne = TSNE(n_components=2)
+        X_total = np.concatenate((learner.X_training, X_pool), axis=0)
+        X_total_flatten = X_total.reshape((X_total.shape[0], -1))
+        y_total = np.concatenate((learner.y_training, y_pool), axis=0)
+        pca = PCA(n_components=50, random_state=0)
+        feature_reduced = pca.fit_transform(X_total_flatten)
+        tsne = TSNE(n_components=2, random_state=0)
         feature_reduced_tsne = tsne.fit_transform(feature_reduced)
 
         training_pool_size = learner.y_training.shape[0]
         plt.figure(figsize=(15, 15))
-        plt.scatter(feature_reduced_tsne[:, 0], feature_reduced_tsne[:, 1], c=learner.y_training, cmap='tab10')
+        plt.scatter(feature_reduced_tsne[learner.X_training.shape[0]:, 0], feature_reduced_tsne[learner.X_training.shape[0]:, 1], c=y_pool, cmap='binary', marker='s')
+        plt.scatter(feature_reduced_tsne[:learner.X_training.shape[0], 0], feature_reduced_tsne[:learner.X_training.shape[0], 1], c=learner.y_training, cmap='tab10')
         plt.title(training_pool_size)
         plt.savefig(os.path.join('tsne_images', str(training_pool_size)+'.jpg'))
         plt.show()
